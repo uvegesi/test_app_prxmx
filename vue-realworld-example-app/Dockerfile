@@ -2,11 +2,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY package*.json ./
-RUN yarn install
+RUN yarn install --frozen-lockfile
 COPY . .
-ARG VUE_APP_API_URL
-ENV VUE_APP_API_URL=$VUE_APP_API_URL
-RUN echo "API ROOT IS: $VUE_APP_API_URL"
+ARG API_ROOT
+ENV VUE_APP_API_URL=${API_ROOT}
+RUN echo "API ROOT IS: ${VUE_APP_API_URL}"
 ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN yarn run build
 
