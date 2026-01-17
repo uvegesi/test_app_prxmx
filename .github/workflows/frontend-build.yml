@@ -2,8 +2,7 @@ name: Build frontend image
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
     paths:
       - "vue-realworld-example-app/**"
 

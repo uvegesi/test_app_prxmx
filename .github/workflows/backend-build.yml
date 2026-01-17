@@ -2,8 +2,7 @@ name: Build backend image
 
 on:
   push:
-    branches:
-      - main
+    branches: ["main"]
     paths:
       - "spring-boot-realworld-example-app/**"
 
