@@ -1,0 +1,41 @@
+name: Build frontend image
+
+on:
+  push:
+    paths:
+      - vue-realworld-example-app/**
+    branches: [ main ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/${{ github.repository }}-frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: type=sha
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: ./vue-realworld-example-app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            API_ROOT=/api
