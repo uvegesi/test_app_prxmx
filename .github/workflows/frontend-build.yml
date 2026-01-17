@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - vue-realworld-example-app/**
+      - "vue-realworld-example-app/**"
 
 env:
   REGISTRY: ghcr.io

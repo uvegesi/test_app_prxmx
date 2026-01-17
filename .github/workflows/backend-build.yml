@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - spring-boot-realworld-example-app/**
+      - "spring-boot-realworld-example-app/**"
 
 env:
   REGISTRY: ghcr.io
