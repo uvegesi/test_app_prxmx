@@ -2,9 +2,10 @@ name: Build frontend image
 
 on:
   push:
+    branches:
+      - main
     paths:
       - vue-realworld-example-app/**
-    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
