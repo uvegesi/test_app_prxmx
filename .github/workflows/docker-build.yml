@@ -108,7 +108,7 @@ jobs:
         run: |
           # 1. Update the image tags in your K8s manifests
           # (Assuming you have a k8s/ folder. If not, we need to create it)
-          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-$(git rev-parse --short HEAD)|g" k3s/backenddeployment.yaml
+          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-$(git rev-parse --short HEAD)|g" k3s/backend-deployment.yaml
           sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-$(git rev-parse --short HEAD)|g" k3s/frontend-deployment.yaml
           
           # 2. Apply
