@@ -1,0 +1,109 @@
+name: Build, Push, and Deploy
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  VAULT_ADDR: ${{ vars.VAULT_ADDR }}
+
+jobs:
+  # ------------------------------------------------------------------
+  # JOB 1: BUILD & PUSH (Runs on the LXC Runner)
+  # ------------------------------------------------------------------
+  build-and-push:
+    runs-on: self-hosted # <--- Uses the Proxmox Runner
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        include:
+          - context: ./spring-boot-realworld-example-app
+            image_suffix: backend
+            dockerfile: ./spring-boot-realworld-example-app/Dockerfile
+          - context: ./vue-realworld-example-app
+            image_suffix: frontend
+            dockerfile: ./vue-realworld-example-app/Dockerfile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-${{ matrix.image_suffix }}
+          tags: |
+            type=sha
+            latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Pass build args if needed
+          build-args: |
+            API_ROOT=/api
+
+  # ------------------------------------------------------------------
+  # JOB 2: DEPLOY TO K3S (Fetches Kubeconfig from Vault)
+  # ------------------------------------------------------------------
+  deploy:
+    needs: build-and-push
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1. Install Vault CLI (if not already on runner, or just use curl)
+      # Since we control the runner via Ansible, it's cleaner to use a simple curl here
+      # or assume 'vault' is installed. Let's use standard curl to be dependency-free.
+      
+      # 2. Fetch Kubeconfig from Vault
+      - name: Retrieve Kubeconfig from Vault
+        id: vault_secrets
+        run: |
+        
+          VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}
+          
+          # Fetch the secret (kubeconfig)
+          # Note: We use -k (insecure) only if using self-signed certs without CA on runner
+          # But since we have Tailscale certs, we might strictly need the CA. 
+          # For simplicity in this script, we assume trusted or -k.
+          
+          RESPONSE=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
+            ${{ env.VAULT_ADDR }}/v1/secret/data/infra/k8s)
+          
+          # Extract kubeconfig (Base64 encoded in Vault? Ansible slurped it as b64)
+          # If Ansible stored it as base64, we decode it.
+          echo "$RESPONSE" | jq -r .data.data.kubeconfig | base64 -d > kubeconfig.yaml
+          
+          chmod 600 kubeconfig.yaml
+          echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+
+      # 3. Deploy to K3s
+      - name: Deploy to Cluster
+        run: |
+          # 1. Update the image tags in your K8s manifests
+          # (Assuming you have a k8s/ folder. If not, we need to create it)
+          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-$(git rev-parse --short HEAD)|g" k3s/backenddeployment.yaml
+          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-$(git rev-parse --short HEAD)|g" k3s/frontend-deployment.yaml
+          
+          # 2. Apply
+          kubectl apply -f k8s/
