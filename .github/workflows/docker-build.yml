@@ -95,12 +95,24 @@ jobs:
           chmod 600 kubeconfig.yaml
 
       # 3. Deploy to K3s
-      - name: Deploy to Cluster
+      - name: Deploy to K3s
         run: |
-          # 1. Update the image tags in your K8s manifests
-          # (Assuming you have a k8s/ folder. If not, we need to create it)
-          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-$(git rev-parse --short HEAD)|g" k3s/backend-deployment.yaml
-          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-$(git rev-parse --short HEAD)|g" k3s/frontend-deployment.yaml
+          # 1. Define the config path explicitly
+          export KUBECONFIG="${{ github.workspace }}/kubeconfig.yaml"
           
-          # 2. Apply
-          kubectl apply -f k3s/
+          # 2. DEBUG: Check if the file exists and has content
+          echo "--- DEBUG KUBECONFIG ---"
+          ls -l $KUBECONFIG
+          # Check what IP address the config is pointing to (without revealing keys)
+          grep "server:" $KUBECONFIG
+          echo "------------------------"
+
+          # 3. Update Image Tags (Using your k3s folder)
+          # We use the SHA to match the image we just built
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${SHORT_SHA}|g" k3s/backend-deployment.yaml
+          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA}|g" k3s/frontend-deployment.yaml
+
+          # 4. Apply with explicit config flag
+          echo "Applying manifests..."
+          kubectl --kubeconfig=$KUBECONFIG apply -f k3s/
