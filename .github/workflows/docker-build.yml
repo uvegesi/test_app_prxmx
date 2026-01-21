@@ -76,10 +76,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # 1. Install Vault CLI (if not already on runner, or just use curl)
-      # Since we control the runner via Ansible, it's cleaner to use a simple curl here
-      # or assume 'vault' is installed. Let's use standard curl to be dependency-free.
+      
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v3
       
       # 2. Fetch Kubeconfig from Vault
       - name: Retrieve Kubeconfig from Vault
