@@ -103,4 +103,4 @@ jobs:
           sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-$(git rev-parse --short HEAD)|g" k3s/frontend-deployment.yaml
           
           # 2. Apply
-          kubectl apply -f k8s/
+          kubectl apply -f k3s/
