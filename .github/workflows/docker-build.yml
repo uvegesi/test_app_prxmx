@@ -120,8 +120,8 @@ jobs:
 
           # 2. Update Image Tags
           SHORT_SHA=$(git rev-parse --short HEAD)
-          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${SHORT_SHA}|g" k3s/apps.yaml
-          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA}|g" k3s/apps.yaml
+          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${SHORT_SHA}|g" k3s/backend-deployment.yaml
+          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA}|g" k3s/frontend-deployment.yaml
 
           # 3. Apply to the specific namespace
           kubectl apply -f k3s/ -n realworld
