@@ -19,7 +19,7 @@ spec:
         - name: backend
           # The pipeline will replace this 'latest' tag with the specific commit SHA
           image: ghcr.io/uvegesi/test_app_prxmx-backend:latest
-          imagePullPolicy: ifNotPresent
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -31,7 +31,7 @@ spec:
           volumeMounts:
             - name: sqlite-data
               mountPath: /app/data
-              
+
       volumes:
         - name: sqlite-data
           persistentVolumeClaim:
