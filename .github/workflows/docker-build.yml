@@ -96,6 +96,25 @@ jobs:
       - name: Install kubectl
         uses: azure/setup-kubectl@v3
       
+       # ------------------------------------------------------------------
+    # Detect changes AGAIN (jobs are isolated)
+    # ------------------------------------------------------------------
+      - name: Detect backend changes
+        id: backend_changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            backend:
+              - 'spring-boot-realworld-example-app/**'
+
+      - name: Detect frontend changes
+        id: frontend_changes
+        uses: dorny/paths-filter@v2
+        with:
+          filters: |
+            frontend:
+              - 'vue-realworld-example-app/**'
+      
       # 2. Fetch Kubeconfig from Vault
       - name: Fetch Kubeconfig from Vault
         run: |
@@ -118,10 +137,20 @@ jobs:
           # 1. Create Namespace (Idempotent: won't fail if it exists)
           kubectl create namespace realworld --dry-run=client -o yaml | kubectl apply -f -
 
-          # 2. Update Image Tags
+          # 2. Update backend image ONLY if backend changed
           SHORT_SHA=$(git rev-parse --short HEAD)
-          sed -i "s|image: .*backend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${SHORT_SHA}|g" k3s/backend-deployment.yaml
-          sed -i "s|image: .*frontend:latest|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA}|g" k3s/frontend-deployment.yaml
+          if [ "${{ steps.backend_changes.outputs.backend }}" = "true" ]; then
+            sed -i "s|image: .*backend:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend:sha-${SHORT_SHA}|g" k3s/backend-deployment.yaml
+          else
+            echo "Backend unchanged — keeping existing image"
+          fi
+
+          # Update frontend image ONLY if frontend changed
+          if [ "${{ steps.frontend_changes.outputs.frontend }}" = "true" ]; then
+            sed -i "s|image: .*frontend:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend:sha-${SHORT_SHA}|g" k3s/frontend-deployment.yaml
+          else
+            echo "Frontend unchanged — keeping existing image"
+          fi
 
           # 3. Apply to the specific namespace
           kubectl apply -f k3s/ -n realworld
