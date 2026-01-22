@@ -1,15 +1,35 @@
+# ----------------------------------------------------------------------
+# 1. THE MIDDLEWARE (The "Rewrite" Logic)
+# ----------------------------------------------------------------------
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: api-strip
+  namespace: realworld
+spec:
+  stripPrefix:
+    prefixes:
+      - /api
+
+---
+
+# ----------------------------------------------------------------------
+# 2. BACKEND INGRESS (Uses the Middleware)
+# ----------------------------------------------------------------------
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: realworld-ingress
+  name: backend-ingress
+  namespace: realworld
   annotations:
-    # Use the default Traefik ingress controller shipped with K3s
-    kubernetes.io/ingress.class: "traefik"
+    # This connects the Ingress to the Middleware defined above
+    # Syntax: <namespace>-<name>@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: realworld-api-strip@kubernetescrd
 spec:
+  ingressClassName: traefik
   rules:
     - http:
         paths:
-          # 1. Route API calls to the Backend
           - path: /api
             pathType: Prefix
             backend:
@@ -17,7 +37,22 @@ spec:
                 name: backend
                 port:
                   number: 8080
-          # 2. Route everything else to the Frontend
+
+---
+
+# ----------------------------------------------------------------------
+# 3. FRONTEND INGRESS (Standard, No Middleware)
+# ----------------------------------------------------------------------
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: frontend-ingress
+  namespace: realworld
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
           - path: /
             pathType: Prefix
             backend:

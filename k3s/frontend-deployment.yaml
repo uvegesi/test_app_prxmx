@@ -4,6 +4,7 @@ metadata:
   name: frontend
   labels:
     app: frontend
+  namespace: realworld
 spec:
   replicas: 1
   selector:
@@ -25,6 +26,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: frontend
+  namespace: realworld
 spec:
   selector:
     app: frontend
