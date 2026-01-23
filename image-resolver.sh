@@ -6,7 +6,6 @@ resolve_image() {
   local changed="$2"
   local registry="$3"
   local image_name="$4"
-  # Use the current git commit SHA (Full) to match ${{ github.sha }}
   local commit_sha="$5"
 
   # SCENARIO 1: Source changed -> Use the Git SHA we just built
@@ -15,12 +14,15 @@ resolve_image() {
     return
   fi
 
-  # SCENARIO 2: No change -> Resolve 'latest' digest from registry
-  # Suppress stderr to keep logs clean, unless it fails
+  # Use 'docker buildx imagetools inspect' to get the distribution digest.
+  # This works for both Single-Arch and Multi-Arch images reliably.
+  
   local digest
-  digest=$(docker manifest inspect "${registry}/${image_name}-${app}:latest" 2>/dev/null | jq -r '.manifests[0].digest // .config.digest')
+  digest=$(docker buildx imagetools inspect \
+    "${registry}/${image_name}-${app}:latest" \
+    --format "{{.Manifest.Digest}}" 2>/dev/null)
 
-  if [[ -z "$digest" || "$digest" == "null" ]]; then
+  if [[ -z "$digest" ]]; then
     echo "ERROR: Could not find 'latest' digest for ${app}. Is the image built?" >&2
     exit 1
   fi
