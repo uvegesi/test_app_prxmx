@@ -18,7 +18,7 @@ spec:
       containers:
         - name: backend
           # The pipeline will replace this 'latest' tag with the specific commit SHA
-          image: ghcr.io/uvegesi/test_app_prxmx-backend:latest
+          image: $(BACKEND_IMAGE)
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
@@ -35,6 +35,9 @@ spec:
           volumeMounts:
             - name: sqlite-data
               mountPath: /app/data
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:sqlite:/app/data/dev.db"
 
       volumes:
         - name: sqlite-data

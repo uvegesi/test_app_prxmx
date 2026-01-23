@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/uvegesi/test_app_prxmx-frontend:latest
+          image: $(FRONTEND_IMAGE)
           imagePullPolicy: Always
           ports:
             - containerPort: 80
