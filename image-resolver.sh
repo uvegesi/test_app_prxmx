@@ -14,16 +14,19 @@ resolve_image() {
     return
   fi
 
-  # Use 'docker buildx imagetools inspect' to get the distribution digest.
-  # This works for both Single-Arch and Multi-Arch images reliably.
+  # SCENARIO 2: No change -> Resolve 'latest' digest from registry
   
-  local digest
-  digest=$(docker buildx imagetools inspect \
-    "${registry}/${image_name}-${app}:latest" \
-    --format "{{.Manifest.Digest}}" 2>/dev/null)
+  # Fetch the inspection data...
+  local raw_output
+  raw_output=$(docker buildx imagetools inspect "${registry}/${image_name}-${app}:latest" 2>/dev/null)
 
+  # ...and strictly filter for the line starting with "Digest:"
+  local digest
+  digest=$(echo "$raw_output" | grep "^Digest:" | awk '{print $2}')
+
+  # Safety check: ensure we actually got a SHA
   if [[ -z "$digest" ]]; then
-    echo "ERROR: Could not find 'latest' digest for ${app}. Is the image built?" >&2
+    echo "ERROR: Could not find 'latest' digest for ${app}." >&2
     exit 1
   fi
 
