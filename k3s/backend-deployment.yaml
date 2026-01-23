@@ -18,7 +18,7 @@ spec:
       containers:
         - name: backend
           # The pipeline will replace this 'latest' tag with the specific commit SHA
-          image: $(BACKEND_IMAGE)
+          image: ${BACKEND_IMAGE}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
